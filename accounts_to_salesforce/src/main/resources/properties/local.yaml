@@ -1,0 +1,7 @@
+http:
+ port: "8082"
+
+sdfc:
+ username: "sateesh@mymail.com"
+ password: "tarantula@123"
+ token: "aSRDLF99Y2hDRESGbchi8AL6B" 

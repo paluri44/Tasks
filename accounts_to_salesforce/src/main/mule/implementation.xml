@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="e4d16f67-e33b-4647-8cd7-1da835c0cce3" >
+		<salesforce:cached-basic-connection username="${sdfc.username}" password="${sdfc.password}" securityToken="${sdfc.token}" />
+	</salesforce:sfdc-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="4ac99fd0-226e-4d21-bb72-dae8cabc1c5d" >
+		<file:connection workingDir="C:\Users\sateesh.paluri\Desktop\Failed Records" />
+	</file:config>
+	<flow name="implementationFlow" doc:id="42bad1f4-aaa3-4788-9857-e292e6720a85" >
+		<ee:transform doc:name="convert into Salesforce" doc:id="136ec903-b9b7-499b-a64e-b7b7fe3f2c0d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=true
+---
+payload map {
+	AccountNumber: $."Account Number",
+	BillingCountry: $."Billing Country",
+	BillingCity: $."Billing City",
+	Name:$."Account Name",
+	Phone: $.Phone	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<batch:job jobName="implementationBatch_Job" doc:id="5324050e-9b85-46fe-b163-f0579359df7c" blockSize="500" maxFailedRecords="-1">
+			<batch:process-records >
+				<batch:step name="Batch_Step" doc:id="463233c6-1a97-4829-b01f-38022c6df7b1" >
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="f22a81b1-a1ab-4a9a-b6d8-080d6e826621" size="500">
+						<salesforce:upsert type="Account" doc:name="Upsert" doc:id="04a117c6-f055-422d-aff3-59f1ebf14409" config-ref="Salesforce_Config" externalIdFieldName="Id" target="Output">
+							<reconnect-forever />
+						</salesforce:upsert>
+						<ee:transform doc:name="Transform Message" doc:id="8f6b9e03-313b-43db-bf4d-7079c46234eb" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="handleFailures" doc:id="b1eed743-a532-44d2-b0d3-2e7c2b30da44" acceptPolicy="ONLY_FAILURES">
+					<ee:transform doc:name="Transform Message" doc:id="1ca1d54d-1e54-46cc-bded-54d7a3023bd7">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+Batch::getStepExceptions()]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="347c6def-7ce3-4deb-9f6a-9948d49828e6" message="#[payload]" />
+					<file:write doc:name="Write" doc:id="293a8ff3-6031-4f6f-8dad-5ac4bf309c4d" config-ref="File_Config" path="failed.txt" />
+				</batch:step>
+			</batch:process-records>
+		</batch:job>
+	</flow>
+</mule>

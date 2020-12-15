@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="payload" format="json">
+      <types:shape format="weave" example="examples/sample payload.json"><![CDATA[%dw 2.0
+
+type payload = {|
+  "Account Name": String, 
+  "Account Number": String, 
+  "Billing Country": String, 
+  "Billing City": String, 
+  Phone: String
+|} {"example": "{\\\"Account Name\\\":\\\"Sateesh\\\",\\\"Account Number\\\":\\\"1100001\\\",\\\"Billing Country\\\":\\\"INDIA\\\",\\\"Billing City\\\":\\\"Hyderabad\\\",\\\"Phone\\\":\\\"+9494949900\\\"}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#136ec903-b9b7-499b-a64e-b7b7fe3f2c0d">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="payload[]"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>
